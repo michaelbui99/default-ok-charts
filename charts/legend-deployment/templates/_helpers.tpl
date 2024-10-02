@@ -4,7 +4,7 @@
 
 {{- define "deployment.labels" -}}
 app: {{ include "deployment.name" $ | quote }}
-chart-name: simple-deployment
+chart-name: legend-deployment
 chart-version: {{ .Chart.Version | quote }}
 {{- range $k, $v := .Values.global.labels }}
 {{ printf "%s: %s" $k ($v | quote) }}
@@ -81,6 +81,67 @@ failureThreshold: {{ .readinessProbe.failureThreshold | default 3 }}
       mountPath: "/secrets/{{ .cloudSQLProxy.secretKeyName }}"
       readOnly: true
   {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+
+
+{{- /* Gatekeeper */ -}}
+{{- define "deployment.gatekeeper" -}}
+{{- with .Values.deployment -}}
+{{- if .gatekeeper.enable -}}
+- name: gatekeeper
+  image: "{{ .gatekeeper.image }}"
+  args:
+{{- /*    - --forbidden-page=/etc/keycloak/templates/forbidden.html.tmpl*/}}
+    - "--listen=0.0.0.0:{{ .container.containerPort | add1 }}"
+    - "--enable-authorization-header=true"
+    - "--upstream-url=http://localhost:{{ .container.containerPort }}"
+    - "--client-id={{ .gatekeeper.client }}"
+    - "--secure-cookie=true"
+    - "--enable-default-deny=true"
+    - "--client-secret=$(KCP_CLIENT_OIDC_SECRET)"
+    - "--cookie-domain={{ .gatekeeper.cookieDomain }}"
+    - "--discovery-url={{ .gatekeeper.keycloak }}"
+    - "--encryption-key=$(ENCRYPTION_KEY)"
+    - "--enable-refresh-tokens=true"
+    - "--verbose"
+    {{- .gatekeeper.args | toYaml | nindent 4 }}
+  env:
+  - name: KCP_CLIENT_OIDC_SECRET
+    valueFrom:
+      secretKeyRef:
+        key: secret
+        name: keycloakproxyclient
+  - name: ENCRYPTION_KEY
+    valueFrom:
+      secretKeyRef:
+        key: key
+        name: gatekeeper-encryption
+  ports:
+  - containerPort: {{ .container.containerPort | add1 }}
+    name: cp-gatekeeper
+    protocol: TCP
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+
+
+{{/*
+Prometheus annotations
+*/}}
+{{- define "deployment.prometheusAnnotations" -}}
+{{- with .Values.deployment.prometheus -}}
+{{- if .enable -}}
+prometheus.io/scrape: "true"
+{{- if .path -}}
+prometheus.io/path: {{ .path | quote }}
+{{- end -}}
+{{- if .port -}}
+prometheus.io/port: {{ .port | quote }}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

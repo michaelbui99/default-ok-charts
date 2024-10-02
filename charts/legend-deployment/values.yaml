@@ -6,6 +6,10 @@ global:
   # [Required for Cloud SQL Proxy]
   projectID: null
 
+  # @todo Check if needed
+  #projectName: example
+  environment: test
+
 # Will rename all resources.
 fullnameOverride: ""
 
@@ -23,11 +27,21 @@ deployment:
 
   dataDog:
     # Enable DataDog logging. Please make sure that your logs comply with the okamba standard ruleset.
-    # If in doubt, ask a collauge or the infrastructure team.
+    # If in doubt, ask a colleague or the infrastructure team.
     enableLogs: false
 
+  # Enables prometheus metric scraping
+  prometheus:
+    enable: false
+    path: null
+    port: null
+
+  # @todo How to support?
+  grafana:
+    dashboards: {}
+
   # Pod Replicas
-  replicas: 2
+  replicas: 1
 
   # Pod Annotations
   podAnnotations: {}
@@ -36,8 +50,12 @@ deployment:
   podLabels: {}
 
   # Used for Image Registry credentials other than your default registry.
-  imagePullSecrets: []
-    #- secret-name-here
+  # @todo Most need okamba-registry new on-prem
+  imagePullSecrets:
+    - okamba-registry
+
+  # How many revisions of replicaset to keep
+  # revisionHistoryLimit: 5
 
   # Main container configuration
   container:
@@ -50,6 +68,8 @@ deployment:
 
     # containerPort needs to be set if the container has to receive traffic.
     containerPort: null
+
+    # @todo Resource limits on-prem??
     resources:
       requests:
         memory: 500Mi
@@ -58,22 +78,28 @@ deployment:
         memory: 2000Mi
         cpu: 1000m
 
+    # @todo Check if ready
     # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
     livenessProbe:
-      enable: true
-      httpGet:
-        path: /healthz
-
+      enable: false
+#      httpGet:
+#        path: /healthz
+#
     readinessProbe:
-      enable: true
-      httpGet:
-        path: /readyz
+      enable: false
+#      httpGet:
+#        path: /readyz
 
     environment: {}
       # SOME_ENV: some-value
 
     envFromConfigmap: []
       # - configmap-name
+
+    secretRefEnvironment: []
+      #- name: MY_SECRET
+      #  secret: secret-name
+      #  key: secret-key
 
     fieldRefEnvironment: {}
       # SOME_ENV: some-field-reference
@@ -98,10 +124,7 @@ deployment:
   # - name: cache-volume
   #   emptyDir: {}
 
-  # Assign a service account for your application.
-  # This service account represents your application and is used for authentication
-  # with Workload Identity. The service account must be Workload Identity enabled.
-  serviceAccountName: default
+  #  serviceAccountName: default
 
   # Enable the Google Cloud SQL Proxy sidecar
   # Find the latest version here, https://gcr.io/cloud-sql-connectors/cloud-sql-proxy
@@ -109,13 +132,33 @@ deployment:
     enable: false
     instanceName: sqlinstance-name
 
-    # [Deprecated]
-    # If specified, Cloud SQL Proxy will use the provided credentials file for authn
-    # insted of application default login aka Workload Identity.
-    # secretKeyName: google-service-account-key
+    # Key that includes Google Service Account Key
+    secretKeyName: google-service-account-key
 
     # Immutable, if not specified, region will default to europe-west3
     # region: europe-west3
+
+  # Sets up gatekeeper protection for main container. This automatically creates ingress and service as well
+  gatekeeper:
+    enable: false
+    image: quay.io/keycloak/keycloak-gatekeeper:10.0.0
+#    image: quay.io/gogatekeeper/gatekeeper:2.10.0
+    keycloak: url-to-keycloak
+    cookieDomain: null
+    client: oicclient
+    args: []
+    service:
+      labels: {}
+      annotations: {}
+    ingress:
+      host: null
+      # Create cname records
+      createDNSRecord: true
+      labels: {}
+      annotations: {}
+      sslRedirect: false
+      wwwRedirect: false
+
 
 ##################################################
 #                    Service                     #
@@ -148,9 +191,8 @@ ingress:
   # URL of the application
   host: example.org
 
-  # Creating DNS records is only supported in our test and prod-test environment.
-  # If needed, only enable this setting on the specific enrionment value file.
-  createDNSRecord: false
+  # Create cname records
+  createDNSRecord: true
 
   # Redirect HTTP to HTTPS.
   # SSL Redirect is disabled for security reasons. Enable only for frontend applications.
@@ -162,7 +204,7 @@ ingress:
 
   # By default, this chart will create a pathType: Prefix on "/" for the service above.
   # If you want additional paths eg. a path to a BFF, add them below.
-  addtionalPaths: []
+  additionalPaths: []
   # - path: /api/
   #   pathType: Prefix
   #   backend:
@@ -171,23 +213,3 @@ ingress:
   #       port:
   #         number: 3000
 
-##################################################
-#           Pod Disruption Budget               #
-##################################################
-# NOTE: a Pod can only be affected by a single Pod Disruption Budget. If you attempt to create multipe Pod Disruption Budgets for the same Pod,
-#       it will throw an error when the eviction API is invoked on the Pod and prevent it from being envicted.
-podDisruptionBudget:
-  # Labels on the Pod Disruption Budget definition
-  labels: {}
-
-  # Annotations on the Pod Disruption Budget definition
-  annotations: {}
-
-  # Enable a Pod Disruption Budget definition.
-  # This allows you to protect your services from voluntary evictions.
-  # Example use case could be ensuring that at most 1 pod is down during node upgrades. 
-  enable: false
-
-  # How many pods are allowed to be unavailable during e.g. scaling of nodes or updates. 
-  # Only integer values are supported. 0 is not an allowed value, since it will potentially block a node indefinitely.
-  maxUnavailablePods: 1
