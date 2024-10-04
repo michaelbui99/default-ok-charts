@@ -1,4 +1,5 @@
 ---
+{{- if not $.Values.stan.configSecretRef }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -169,3 +170,4 @@ data:
     #                                             #
     ###############################################
     {{ include "nats-configmap" . | nindent 4 }}
+{{- end }}

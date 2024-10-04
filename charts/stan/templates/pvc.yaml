@@ -1,4 +1,4 @@
-{- if .Values.store.volume.persistentVolumeClaim -}}{{- if not .Values.store.volume.persistentVolumeClaim.existingClaim -}}
+{{- if .Values.store.volume.persistentVolumeClaim -}}{{- if not .Values.store.volume.persistentVolumeClaim.existingClaim -}}
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:

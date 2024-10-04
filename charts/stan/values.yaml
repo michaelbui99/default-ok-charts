@@ -6,7 +6,7 @@
 stan:
   image: nats-streaming:0.23.2
   pullPolicy: IfNotPresent
-  replicas: 1
+  replicas: 3
 
   # securityContext for the stan container
   securityContext: {}
@@ -46,10 +46,9 @@ stan:
   #   secret:
   #     name: nats-sys-creds
   #     key: sys.creds
-  config: 
-    fromSecret:
-      name: stan-conf
-      key: stan.conf
+  configSecretRef: 
+    name: stan-conf
+    key: stan.conf
 
   auth:
     enabled: false
