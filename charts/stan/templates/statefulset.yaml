@@ -174,6 +174,18 @@ spec:
             value: {{ .Values.stan.nats.url }}
           - name: NATS_URL
             value: nats://$(NATS_OPERATOR_SERVICE_ACCOUNT):$(NATS_OPERATOR_BOUND_TOKEN)@$(NATS_SERVICE)
+          {{- if and .Values.stan.auth.enabled .Values.stan.auth.secretRef }}
+          - name: AUTH_USER
+            valueFrom:
+              secretKeyRef: 
+                name: {{ .Values.stan.auth.secretRef.secret }}
+                value: {{ .Values.stan.auth.secretRef.usernameKey}}
+          - name: AUTH_PASSWORD
+            valueFrom:
+              secretKeyRef: 
+                name: {{ .Values.stan.auth.secretRef.secret }}
+                value: {{ .Values.stan.auth.secretRef.passwordKey}}
+
           {{- end }}
           ports:
           - containerPort: 8222
