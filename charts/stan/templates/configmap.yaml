@@ -1,5 +1,4 @@
 ---
-{{- if not $.Values.stan.configSecretRef }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -55,10 +54,6 @@ data:
       {{- end }}
       {{- end }}
 
-      {{- if and .Values.stan.tls.enabled .Values.stan.tls.secretName }}
-      tls: {{ mustToJson .Values.stan.tls.settings }}
-      {{- end }}
-
       {{- with .Values.store.ft.group }}
       ft_group_name: {{ . }}
       {{- end }}
@@ -66,15 +61,6 @@ data:
       ###############################
       #  Store Config               #
       ###############################
-      {{- if eq .Values.store.type "sql" }}
-      store: "sql"
-      sql_options {
-        driver: {{ .Values.store.sql.driver }}
-        source: '{{.Values.store.sql.source}}'
-      }
-      {{- else if eq .Values.store.type "memory" }}
-      store: "memory"
-      {{- else }}
       store: "file"
       dir: {{ .Values.store.file.path }}
       {{- with .Values.store.file.options }}
@@ -170,4 +156,3 @@ data:
     #                                             #
     ###############################################
     {{ include "nats-configmap" . | nindent 4 }}
-{{- end }}
